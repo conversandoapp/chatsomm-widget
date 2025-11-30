@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Widget</title>
+  <style>
+    /* Widget Container */
+    #chatsomm-widget-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    }
+
+    /* Toggle Button */
+    #chatsomm-toggle-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #chatsomm-toggle-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    #chatsomm-toggle-btn svg {
+      width: 28px;
+      height: 28px;
+      fill: white;
+    }
+
+    /* Chat Window */
+    #chatsomm-chat-window {
+      display: none;
+      position: fixed;
+      bottom: 100px;
+      right: 20px;
+      width: 380px;
+      height: 550px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #chatsomm-chat-window.open {
+      display: flex;
+    }
+
+    /* Header */
+    #chatsomm-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #chatsomm-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    #chatsomm-close-btn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 24px;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Messages Container */
+    #chatsomm-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #f9fafb;
+    }
+
+    .chatsomm-message {
+      margin-bottom: 12px;
+      display: flex;
+    }
+
+    .chatsomm-message.user {
+      justify-content: flex-end;
+    }
+
+    .chatsomm-message-content {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .chatsomm-message.user .chatsomm-message-content {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .chatsomm-message.assistant .chatsomm-message-content {
+      background: white;
+      color: #1f2937;
+      border: 1px solid #e5e7eb;
+    }
+
+    /* Typing Indicator */
+    .chatsomm-typing {
+      display: none;
+      align-items: center;
+      padding: 10px 14px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      max-width: 60px;
+    }
+
+    .chatsomm-typing.active {
+      display: flex;
+    }
+
+    .chatsomm-typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9ca3af;
+      margin: 0 2px;
+      animation: chatsomm-bounce 1.4s infinite;
+    }
+
+    .chatsomm-typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .chatsomm-typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes chatsomm-bounce {
+      0%, 60%, 100% {
+        transform: translateY(0);
+      }
+      30% {
+        transform: translateY(-8px);
+      }
+    }
+
+    /* Input Area */
+    #chatsomm-input-area {
+      padding: 16px;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 8px;
+    }
+
+    #chatsomm-input {
+      flex: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 20px;
+      padding: 10px 16px;
+      font-size: 14px;
+      outline: none;
+      resize: none;
+      font-family: inherit;
+    }
+
+    #chatsomm-input:focus {
+      border-color: #667eea;
+    }
+
+    #chatsomm-send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+
+    #chatsomm-send-btn:hover {
+      transform: scale(1.05);
+    }
+
+    #chatsomm-send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #chatsomm-send-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 480px) {
+      #chatsomm-chat-window {
+        width: calc(100vw - 40px);
+        height: calc(100vh - 140px);
+        right: 20px;
+        bottom: 100px;
+      }
+    }
+
+    /* Markdown Styles */
+    .chatsomm-message-content strong {
+      font-weight: 600;
+    }
+
+    .chatsomm-message-content em {
+      font-style: italic;
+    }
+
+    .chatsomm-message-content code {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .chatsomm-message-content a {
+      color: inherit;
+      text-decoration: underline;
+    }
+
+    .chatsomm-message-content ul,
+    .chatsomm-message-content ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .chatsomm-message-content li {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Widget Container -->
+  <div id="chatsomm-widget-container">
+    <!-- Toggle Button -->
+    <button id="chatsomm-toggle-btn" aria-label="Abrir chat">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+      </svg>
+    </button>
+
+    <!-- Chat Window -->
+    <div id="chatsomm-chat-window">
+      <!-- Header -->
+      <div id="chatsomm-header">
+        <h3>Chat Asistente</h3>
+        <button id="chatsomm-close-btn" aria-label="Cerrar chat">×</button>
+      </div>
+
+      <!-- Messages -->
+      <div id="chatsomm-messages">
+        <div class="chatsomm-message assistant">
+          <div class="chatsomm-message-content">
+            ¡Hola! ¿En qué puedo ayudarte hoy?
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div id="chatsomm-input-area">
+        <textarea 
+          id="chatsomm-input" 
+          placeholder="Escribe tu mensaje..."
+          rows="1"
+        ></textarea>
+        <button id="chatsomm-send-btn" aria-label="Enviar mensaje">
+          <svg viewBox="0 0 24 24">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Configuración - CAMBIAR ESTA URL POR TU BACKEND
+      const API_URL = 'https://chatsomm-back.onrender.com/api/chat';
+      
+      let threadId = null;
+      let isTyping = false;
+
+      // Elementos DOM
+      const toggleBtn = document.getElementById('chatsomm-toggle-btn');
+      const chatWindow = document.getElementById('chatsomm-chat-window');
+      const closeBtn = document.getElementById('chatsomm-close-btn');
+      const messagesContainer = document.getElementById('chatsomm-messages');
+      const input = document.getElementById('chatsomm-input');
+      const sendBtn = document.getElementById('chatsomm-send-btn');
+
+      // Toggle chat window
+      toggleBtn.addEventListener('click', () => {
+        chatWindow.classList.toggle('open');
+        if (chatWindow.classList.contains('open')) {
+          input.focus();
+        }
+      });
+
+      closeBtn.addEventListener('click', () => {
+        chatWindow.classList.remove('open');
+      });
+
+      // Parse Markdown
+      function parseMarkdown(text) {
+        // Negrita
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // Cursiva
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+        // Código inline
+        text = text.replace(/`(.+?)`/g, '<code>$1</code>');
+        // Enlaces
+        text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+        
+        // Listas numeradas y con viñetas
+        const lines = text.split('\n');
+        let inList = false;
+        let listType = null;
+        let result = [];
+        
+        lines.forEach(line => {
+          const bulletMatch = line.match(/^[\s]*[-*]\s+(.+)$/);
+          const numberedMatch = line.match(/^[\s]*\d+\.\s+(.+)$/);
+          
+          if (bulletMatch) {
+            if (!inList || listType !== 'ul') {
+              if (inList) result.push(listType === 'ol' ? '</ol>' : '</ul>');
+              result.push('<ul>');
+              listType = 'ul';
+              inList = true;
+            }
+            result.push('<li>' + bulletMatch[1] + '</li>');
+          } else if (numberedMatch) {
+            if (!inList || listType !== 'ol') {
+              if (inList) result.push(listType === 'ol' ? '</ol>' : '</ul>');
+              result.push('<ol>');
+              listType = 'ol';
+              inList = true;
+            }
+            result.push('<li>' + numberedMatch[1] + '</li>');
+          } else {
+            if (inList) {
+              result.push(listType === 'ol' ? '</ol>' : '</ul>');
+              inList = false;
+              listType = null;
+            }
+            if (line.trim()) {
+              result.push(line + '<br>');
+            }
+          }
+        });
+        
+        if (inList) {
+          result.push(listType === 'ol' ? '</ol>' : '</ul>');
+        }
+        
+        return result.join('');
+      }
+
+      // Add message
+      function addMessage(content, role) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chatsomm-message ${role}`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'chatsomm-message-content';
+        contentDiv.innerHTML = parseMarkdown(content);
+        
+        messageDiv.appendChild(contentDiv);
+        messagesContainer.appendChild(messageDiv);
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      // Show typing indicator
+      function showTyping() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'chatsomm-message assistant';
+        typingDiv.id = 'chatsomm-typing-indicator';
+        
+        const typingContent = document.createElement('div');
+        typingContent.className = 'chatsomm-typing active';
+        typingContent.innerHTML = `
+          <div class="chatsomm-typing-dot"></div>
+          <div class="chatsomm-typing-dot"></div>
+          <div class="chatsomm-typing-dot"></div>
+        `;
+        
+        typingDiv.appendChild(typingContent);
+        messagesContainer.appendChild(typingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      function hideTyping() {
+        const typingIndicator = document.getElementById('chatsomm-typing-indicator');
+        if (typingIndicator) {
+          typingIndicator.remove();
+        }
+      }
+
+      // Send message
+      async function sendMessage() {
+        const message = input.value.trim();
+        if (!message || isTyping) return;
+
+        // Add user message
+        addMessage(message, 'user');
+        input.value = '';
+        
+        isTyping = true;
+        sendBtn.disabled = true;
+        showTyping();
+
+        try {
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: message,
+              threadId: threadId
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+          }
+
+          const data = await response.json();
+          
+          // Save threadId
+          if (data.threadId && !threadId) {
+            threadId = data.threadId;
+          }
+
+          hideTyping();
+          addMessage(data.response, 'assistant');
+
+        } catch (error) {
+          console.error('Error:', error);
+          hideTyping();
+          addMessage('Lo siento, ocurrió un error. Por favor, intenta nuevamente.', 'assistant');
+        } finally {
+          isTyping = false;
+          sendBtn.disabled = false;
+        }
+      }
+
+      // Event listeners
+      sendBtn.addEventListener('click', sendMessage);
+      
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Auto-resize textarea
+      input.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+    })();
+  </script>
+</body>
+</html>
